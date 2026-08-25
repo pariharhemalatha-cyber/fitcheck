@@ -1,0 +1,8 @@
+.env
+*.exe
+/bin/
+/tmp/
+/uploads/
+fitcheck.db
+.DS_Store
+web/static/css/output.css
