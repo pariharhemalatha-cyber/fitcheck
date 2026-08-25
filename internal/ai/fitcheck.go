@@ -5,8 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/ashokparihar/fitcheck/internal/outfit"
@@ -51,12 +49,11 @@ func fitCheckWithVision(
 	itemIDs []string,
 	items []outfit.Item,
 ) (FitCheckResult, error) {
-	data, err := os.ReadFile(selfiePath)
+	data, mime, err := prepareImageForVision(selfiePath)
 	if err != nil {
 		return FitCheckResult{}, err
 	}
 
-	mime := mimeFromExt(filepath.Ext(selfiePath))
 	b64 := base64.StdEncoding.EncodeToString(data)
 	dataURL := fmt.Sprintf("data:%s;base64,%s", mime, b64)
 
@@ -83,9 +80,9 @@ Intended items: %s`, mustJSON(itemDesc))
 		{"type": "image_url", "image_url": map[string]string{"url": dataURL}},
 	}
 
-	text, err := client.ChatCompletion(ctx, "gpt-4o-mini", []chatMessage{
+	text, err := client.VisionCompletion(ctx, []chatMessage{
 		{Role: "user", Content: content},
-	}, 600)
+	}, 2048)
 	if err != nil {
 		return FitCheckResult{}, err
 	}

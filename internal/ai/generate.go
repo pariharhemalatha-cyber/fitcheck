@@ -96,7 +96,7 @@ Weather: %s`,
 		mustJSON(weatherSummaries),
 	)
 
-	text, err := client.ChatCompletion(ctx, "gpt-4o-mini", []chatMessage{
+	text, err := client.TextCompletion(ctx, []chatMessage{
 		{Role: "user", Content: prompt},
 	}, 2000)
 	if err != nil {

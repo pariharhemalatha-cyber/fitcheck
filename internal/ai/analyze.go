@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 )
@@ -26,7 +25,8 @@ type ItemAttributes struct {
 	VibeTags         []string `json:"vibe_tags"`
 }
 
-const analyzePrompt = `Analyze this clothing item image. Return ONLY valid JSON with these fields:
+const analyzePrompt = `You are analyzing a photo of a single clothing item from someone's closet.
+Identify the garment and return ONLY valid JSON (no markdown fences) with these fields:
 name, category (one of: tshirt, shirt, pants, shorts, jacket, shoes, accessory),
 main_color, secondary_colors (array), pattern, material, fit,
 formality (1-10), season_tags (array), rain_ok (boolean),
@@ -46,12 +46,11 @@ func AnalyzeItem(ctx context.Context, client *Client, imagePath string) (ItemAtt
 }
 
 func analyzeWithVision(ctx context.Context, client *Client, imagePath string) (ItemAttributes, error) {
-	data, err := os.ReadFile(imagePath)
+	data, mime, err := prepareImageForVision(imagePath)
 	if err != nil {
 		return ItemAttributes{}, err
 	}
 
-	mime := mimeFromExt(filepath.Ext(imagePath))
 	b64 := base64.StdEncoding.EncodeToString(data)
 	dataURL := fmt.Sprintf("data:%s;base64,%s", mime, b64)
 
@@ -60,9 +59,9 @@ func analyzeWithVision(ctx context.Context, client *Client, imagePath string) (I
 		{"type": "image_url", "image_url": map[string]string{"url": dataURL}},
 	}
 
-	text, err := client.ChatCompletion(ctx, "gpt-4o-mini", []chatMessage{
+	text, err := client.VisionCompletion(ctx, []chatMessage{
 		{Role: "user", Content: content},
-	}, 800)
+	}, 2048)
 	if err != nil {
 		return ItemAttributes{}, err
 	}
@@ -312,18 +311,66 @@ func mimeFromExt(ext string) string {
 
 func extractJSON(s string) string {
 	s = strings.TrimSpace(s)
+	// Strip markdown fences: ```json ... ``` or ``` ... ```
 	if strings.HasPrefix(s, "```") {
-		lines := strings.Split(s, "\n")
-		if len(lines) >= 2 {
-			s = strings.Join(lines[1:len(lines)-1], "\n")
+		if i := strings.IndexByte(s, '\n'); i >= 0 {
+			s = strings.TrimSpace(s[i+1:])
 		}
 	}
+	if i := strings.LastIndex(s, "```"); i >= 0 {
+		s = strings.TrimSpace(s[:i])
+	}
+
 	start := strings.Index(s, "{")
-	end := strings.LastIndex(s, "}")
-	if start >= 0 && end > start {
+	if start < 0 {
+		start = strings.Index(s, "[")
+	}
+	if start < 0 {
+		return s
+	}
+
+	open, close := byte('{'), byte('}')
+	if s[start] == '[' {
+		open, close = '[', ']'
+	}
+
+	depth := 0
+	inString := false
+	escaped := false
+	for i := start; i < len(s); i++ {
+		c := s[i]
+		if inString {
+			if escaped {
+				escaped = false
+				continue
+			}
+			if c == '\\' {
+				escaped = true
+				continue
+			}
+			if c == '"' {
+				inString = false
+			}
+			continue
+		}
+		switch c {
+		case '"':
+			inString = true
+		case open:
+			depth++
+		case close:
+			depth--
+			if depth == 0 {
+				return s[start : i+1]
+			}
+		}
+	}
+
+	end := strings.LastIndex(s, string(close))
+	if end > start {
 		return s[start : end+1]
 	}
-	return s
+	return s[start:]
 }
 
 func titleCase(s string) string {

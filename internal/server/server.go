@@ -96,13 +96,9 @@ func Bootstrap(cfg *config.Config) (*App, error) {
 	}
 
 	var aiClient *ai.Client
-	if cfg.OpenAIAPIKey != "" {
-		aiClient, err = ai.NewClient(cfg.OpenAIAPIKey)
-		if err != nil {
-			log.Printf("OpenAI not configured: %v", err)
-		} else {
-			log.Printf("OpenAI vision enabled")
-		}
+	aiClient, err = ai.NewClientFromConfig(cfg)
+	if err != nil {
+		log.Printf("AI setup failed: %v (using rule-based fallbacks)", err)
 	}
 
 	h := handlers.New(s, stor, aiClient)

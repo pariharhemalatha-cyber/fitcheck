@@ -13,6 +13,7 @@ type Config struct {
 	SupabaseAnonKey        string
 	SupabaseServiceRoleKey string
 	DatabaseURL            string
+	GeminiAPIKey           string
 	OpenAIAPIKey           string
 	IsVercel               bool
 }
@@ -37,6 +38,7 @@ func Load() (*Config, error) {
 		SupabaseAnonKey:        os.Getenv("SUPABASE_ANON_KEY"),
 		SupabaseServiceRoleKey: os.Getenv("SUPABASE_SERVICE_ROLE_KEY"),
 		DatabaseURL:            os.Getenv("DATABASE_URL"),
+		GeminiAPIKey:           os.Getenv("GEMINI_API_KEY"),
 		OpenAIAPIKey:           os.Getenv("OPENAI_API_KEY"),
 		IsVercel:               os.Getenv("VERCEL") == "1",
 	}, nil
