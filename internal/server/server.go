@@ -89,6 +89,9 @@ func Bootstrap(cfg *config.Config) (*App, error) {
 		s = store.NewPostgres(database)
 		cleanup = func() error { return database.Close() }
 		log.Printf("Using Supabase Postgres")
+	} else if cfg.IsVercel {
+		s = store.NewMemory()
+		log.Printf("Using in-memory store on Vercel (set DATABASE_URL for persistence)")
 	} else {
 		database, err := db.Open(cfg.SQLitePath)
 		if err != nil {

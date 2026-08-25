@@ -30,7 +30,7 @@ func Load() (*Config, error) {
 	if sqlitePath == "" {
 		sqlitePath = "fitcheck.db"
 	}
-	isVercel := os.Getenv("VERCEL") == "1"
+	isVercel := os.Getenv("VERCEL") == "1" || os.Getenv("VERCEL_ENV") != ""
 	if isVercel && os.Getenv("DATABASE_URL") == "" {
 		sqlitePath = "/tmp/fitcheck.db"
 	}
