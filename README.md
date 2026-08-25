@@ -50,18 +50,19 @@ In Supabase Dashboard → **Storage** → **New bucket**:
 | `SUPABASE_URL` | Yes | Supabase project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | For storage uploads |
 | `SUPABASE_ANON_KEY` | Recommended | Future auth |
-| `OPENAI_API_KEY` | Optional | Vision analysis & AI outfits |
+| `GEMINI_API_KEY` | Recommended | Free AI vision + outfits ([get key](https://aistudio.google.com/apikey)) |
+| `OPENAI_API_KEY` | Optional | Paid AI fallback |
 
-3. Deploy — Vercel detects Go automatically via `api/index.go` + `vercel.json`
+3. Deploy — Vercel detects Go via root `main.go` + `vercel.json`
 
 ### How Vercel works
 
 ```
-Browser → Vercel serverless (api/index.go) → chi router
+Browser → Vercel Go server (main.go) → chi router
               ├── Supabase Postgres (persistent data)
               ├── Supabase Storage (clothing photos)
               ├── Open-Meteo (weather)
-              └── OpenAI (optional)
+              └── Gemini / OpenAI (optional)
 ```
 
 Local dev uses SQLite + disk uploads when `DATABASE_URL` is not set.
@@ -88,7 +89,7 @@ cp .env.example .env
 ## Project structure
 
 ```
-api/index.go          Vercel serverless entrypoint
+main.go               Vercel + production entrypoint
 cmd/web/main.go       Local development server
 internal/
   ai/                 OpenAI + fallbacks
