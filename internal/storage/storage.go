@@ -25,7 +25,11 @@ func New(cfg *config.Config) (Storage, error) {
 	if cfg.UseSupabaseStorage() {
 		return NewSupabase(cfg.SupabaseURL, cfg.SupabaseServiceRoleKey, "closet")
 	}
-	return NewLocal(UploadDir)
+	root := UploadDir
+	if cfg.IsVercel {
+		root = "/tmp/uploads"
+	}
+	return NewLocal(root)
 }
 
 func PublicSrc(storagePath string, s Storage) string {

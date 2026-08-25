@@ -71,7 +71,11 @@ func Bootstrap(cfg *config.Config) (*App, error) {
 
 	var local *storage.Local
 	if !cfg.UseSupabaseStorage() {
-		local, _ = storage.NewLocal(storage.UploadDir)
+		root := storage.UploadDir
+		if cfg.IsVercel {
+			root = "/tmp/uploads"
+		}
+		local, _ = storage.NewLocal(root)
 	}
 
 	var s store.Store

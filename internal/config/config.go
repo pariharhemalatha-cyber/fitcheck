@@ -30,6 +30,10 @@ func Load() (*Config, error) {
 	if sqlitePath == "" {
 		sqlitePath = "fitcheck.db"
 	}
+	isVercel := os.Getenv("VERCEL") == "1"
+	if isVercel && os.Getenv("DATABASE_URL") == "" {
+		sqlitePath = "/tmp/fitcheck.db"
+	}
 
 	return &Config{
 		Port:                   port,
@@ -40,7 +44,7 @@ func Load() (*Config, error) {
 		DatabaseURL:            os.Getenv("DATABASE_URL"),
 		GeminiAPIKey:           os.Getenv("GEMINI_API_KEY"),
 		OpenAIAPIKey:           os.Getenv("OPENAI_API_KEY"),
-		IsVercel:               os.Getenv("VERCEL") == "1",
+		IsVercel:               isVercel,
 	}, nil
 }
 
