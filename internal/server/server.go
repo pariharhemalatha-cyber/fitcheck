@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -15,14 +16,19 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-func New(h *handlers.Handler, uploads *storage.Local) http.Handler {
+type App struct {
+	Handler http.Handler
+	Cleanup func() error
+}
+
+func New(h *handlers.Handler, uploads storage.Storage, local *storage.Local) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(60 * time.Second))
+	r.Use(middleware.Timeout(55 * time.Second))
 
 	r.Get("/health", h.Health)
 	r.Get("/", h.Home)
@@ -44,39 +50,69 @@ func New(h *handlers.Handler, uploads *storage.Local) http.Handler {
 	r.Get("/fitcheck", h.FitCheck)
 	r.Post("/fitcheck", h.FitCheck)
 
-	if uploads != nil {
-		r.Handle("/uploads/*", http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploads.Dir()))))
+	if local != nil {
+		r.Handle("/uploads/*", http.StripPrefix("/uploads/", http.FileServer(http.Dir(local.Dir()))))
 	}
 
 	return r
 }
 
-func NewWithSQLite(cfg *config.Config) (http.Handler, func() error, error) {
-	database, err := db.Open(cfg.SQLitePath)
+func Bootstrap(cfg *config.Config) (*App, error) {
+	stor, err := storage.New(cfg)
 	if err != nil {
-		return nil, nil, err
+		return nil, fmt.Errorf("storage: %w", err)
 	}
 
-	uploads, err := storage.NewLocal(storage.UploadDir)
-	if err != nil {
-		_ = database.Close()
-		return nil, nil, err
+	if sb, ok := stor.(*storage.Supabase); ok {
+		if err := sb.EnsureBucket(); err != nil {
+			log.Printf("supabase bucket setup: %v", err)
+		}
+	}
+
+	var local *storage.Local
+	if !cfg.UseSupabaseStorage() {
+		local, _ = storage.NewLocal(storage.UploadDir)
+	}
+
+	var s store.Store
+	var cleanup func() error = func() error { return nil }
+
+	if cfg.UsePostgres() {
+		database, err := db.OpenPostgres(cfg.DatabaseURL)
+		if err != nil {
+			return nil, fmt.Errorf("postgres: %w", err)
+		}
+		s = store.NewPostgres(database)
+		cleanup = func() error { return database.Close() }
+		log.Printf("Using Supabase Postgres")
+	} else {
+		database, err := db.Open(cfg.SQLitePath)
+		if err != nil {
+			return nil, fmt.Errorf("sqlite: %w", err)
+		}
+		s = store.NewSQLite(database)
+		cleanup = func() error { return database.Close() }
+		log.Printf("Using local SQLite (%s)", cfg.SQLitePath)
 	}
 
 	var aiClient *ai.Client
 	if cfg.OpenAIAPIKey != "" {
 		aiClient, err = ai.NewClient(cfg.OpenAIAPIKey)
 		if err != nil {
-			log.Printf("OpenAI not configured: %v (using rule-based fallbacks)", err)
+			log.Printf("OpenAI not configured: %v", err)
 		} else {
 			log.Printf("OpenAI vision enabled")
 		}
-	} else {
-		log.Printf("No OPENAI_API_KEY — using heuristic analysis and rule-based outfits")
 	}
 
-	s := store.NewSQLite(database)
-	h := handlers.New(s, uploads, aiClient)
-	cleanup := func() error { return database.Close() }
-	return New(h, uploads), cleanup, nil
+	h := handlers.New(s, stor, aiClient)
+	return &App{Handler: New(h, stor, local), Cleanup: cleanup}, nil
+}
+
+func NewWithSQLite(cfg *config.Config) (http.Handler, func() error, error) {
+	app, err := Bootstrap(cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+	return app.Handler, app.Cleanup, nil
 }

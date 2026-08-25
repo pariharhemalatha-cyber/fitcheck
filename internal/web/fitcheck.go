@@ -34,7 +34,7 @@ var fitCheckContent = template.Must(template.New("fitcheck").Parse(`
               <div class="border border-stone-200 rounded-xl overflow-hidden peer-checked:ring-2 peer-checked:ring-stone-900 peer-checked:border-stone-900 hover:border-stone-400 transition">
                 <div class="aspect-square bg-stone-100 flex items-center justify-center overflow-hidden">
                   {{if .ImageURL}}
-                  <img src="/uploads/{{.ImageURL}}" alt="{{.Name}}" class="w-full h-full object-cover">
+                  <img src="{{.ImageURL}}" alt="{{.Name}}" class="w-full h-full object-cover">
                   {{else}}
                   <span class="text-2xl">{{if .Emoji}}{{.Emoji}}{{else}}👕{{end}}</span>
                   {{end}}
@@ -80,7 +80,7 @@ var fitCheckResultPartial = template.Must(fitCheckContent.New("fitCheckResult").
 <div class="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm space-y-5 h-full">
   {{if .SelfieURL}}
   <div class="aspect-[3/4] max-h-48 bg-stone-100 rounded-xl overflow-hidden mx-auto">
-    <img src="/uploads/{{.SelfieURL}}" alt="Your selfie" class="w-full h-full object-cover">
+    <img src="{{.SelfieURL}}" alt="Your selfie" class="w-full h-full object-cover">
   </div>
   {{end}}
 

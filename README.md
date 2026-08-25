@@ -4,14 +4,13 @@ Personal outfit decision engine — upload your clothes, plan trips, get AI-powe
 
 ## Stack
 
-- **Go** — HTTP server (chi router)
-- **SQLite** — local persistence (`fitcheck.db`)
-- **HTML templates + HTMX + Tailwind CDN** — server-rendered UI
+- **Go** — chi router, Vercel serverless + local server
+- **SQLite** — local development
+- **Supabase Postgres + Storage** — Vercel production
 - **OpenAI Vision** (optional) — clothing analysis & outfit generation
 - **Open-Meteo + Nominatim** — weather & geocoding (free, no key)
-- **Supabase migration** — ready for cloud Postgres when you connect it
 
-## Quick start
+## Local development
 
 ```bash
 export PATH="$HOME/.local/go/bin:$PATH"
@@ -19,30 +18,66 @@ cd ~/Projects/fitcheck
 go run ./cmd/web
 ```
 
-Open **http://localhost:8080**
+Open **http://localhost:8080** — uses SQLite + local `uploads/` folder.
 
-Optional: add `OPENAI_API_KEY` to `.env` for vision-based clothing analysis and smarter outfits.
+## Deploy to Vercel
+
+### 1. Create a Supabase project
+
+1. Go to [supabase.com](https://supabase.com) → New project
+2. Copy these from **Project Settings → API**:
+   - `SUPABASE_URL`
+   - `SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+3. Copy **Database URL** (use the **Transaction pooler** connection string on port `6543`) as `DATABASE_URL`
+
+### 2. Create a public storage bucket
+
+In Supabase Dashboard → **Storage** → **New bucket**:
+- Name: `closet`
+- Public: **Yes**
+
+(The app also tries to create this automatically on first boot.)
+
+### 3. Deploy on Vercel
+
+1. Import **https://github.com/pariharhemalatha-cyber/fitcheck** on [vercel.com](https://vercel.com)
+2. Add environment variables:
+
+| Variable | Required on Vercel | Description |
+|---|---|---|
+| `DATABASE_URL` | Yes | Supabase Postgres pooler URL |
+| `SUPABASE_URL` | Yes | Supabase project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes | For storage uploads |
+| `SUPABASE_ANON_KEY` | Recommended | Future auth |
+| `OPENAI_API_KEY` | Optional | Vision analysis & AI outfits |
+
+3. Deploy — Vercel detects Go automatically via `api/index.go` + `vercel.json`
+
+### How Vercel works
+
+```
+Browser → Vercel serverless (api/index.go) → chi router
+              ├── Supabase Postgres (persistent data)
+              ├── Supabase Storage (clothing photos)
+              ├── Open-Meteo (weather)
+              └── OpenAI (optional)
+```
+
+Local dev uses SQLite + disk uploads when `DATABASE_URL` is not set.
 
 ## Features
 
 | Screen | Route | What it does |
 |---|---|---|
 | Home | `/` | Style Me composer |
-| Closet | `/closet` | Upload photos, AI auto-tags, browse by category |
-| Item detail | `/closet/items/{id}` | View/edit AI tags (color, pattern, formality, season) |
-| My Style | `/style` | Personal preferences (comfort, photo-ready, no-repeat) |
-| Plan | `/plan` | Location, dates, activities, formality |
-| Outfits | `/outfits` | Weather-aware outfit recommendations from your closet |
-| Trip | `/trip` | Packing list + day-by-day outfits with intelligent reuse |
-| Fit Check | `/fitcheck` | Upload selfie, get fit score + swap suggestions |
-
-## How it works
-
-1. **Upload clothes** → saved to `uploads/`, analyzed by AI (or heuristics without API key)
-2. **Plan a trip/day** → geocodes location, fetches Open-Meteo forecast
-3. **Outfit engine** → filters closet by weather/formality, builds combinations, optionally uses OpenAI
-4. **Trip packing** → minimizes pieces, reuses pants/shoes, rotates tops
-5. **Fit Check** → scores your selfie against selected outfit items
+| Closet | `/closet` | Upload photos, AI auto-tags |
+| Item detail | `/closet/items/{id}` | Edit AI tags |
+| My Style | `/style` | Personal preferences |
+| Plan | `/plan` | Location, dates, activities |
+| Outfits | `/outfits` | Weather-aware recommendations |
+| Trip | `/trip` | Packing + day-by-day outfits |
+| Fit Check | `/fitcheck` | Selfie scoring + swap suggestions |
 
 ## Environment
 
@@ -50,38 +85,22 @@ Optional: add `OPENAI_API_KEY` to `.env` for vision-based clothing analysis and 
 cp .env.example .env
 ```
 
-| Variable | Required | Description |
-|---|---|---|
-| `PORT` | No | Default `8080` |
-| `SQLITE_PATH` | No | Default `fitcheck.db` |
-| `OPENAI_API_KEY` | No | Enables vision analysis & AI outfits |
-| `SUPABASE_*` | No | For future cloud auth/storage |
-
 ## Project structure
 
 ```
-cmd/web/              HTTP server entrypoint
+api/index.go          Vercel serverless entrypoint
+cmd/web/main.go       Local development server
 internal/
-  ai/                 OpenAI client, analyze, generate, fitcheck
-  config/             Environment config
-  db/                 SQLite schema + CRUD
+  ai/                 OpenAI + fallbacks
+  db/                 SQLite + Postgres migrations
   handlers/           HTTP handlers
-  outfit/             Rule-based generator + packing solver
-  server/             Chi router setup
-  service/            Orchestrates AI + weather + store
-  storage/            Local file uploads
-  store/              Store interface + SQLite implementation
-  weather/            Geocoding + Open-Meteo forecast
+  outfit/             Rule-based generator + packing
+  server/             Router + bootstrap
+  service/            AI + weather orchestration
+  storage/            Local disk + Supabase Storage
+  store/              SQLite + Postgres stores
+  weather/            Geocoding + Open-Meteo
   web/                HTML templates
-supabase/migrations/  Postgres schema (for Supabase cloud)
-uploads/              Clothing photos (gitignored)
-fitcheck.db           SQLite database (gitignored)
+supabase/migrations/  Postgres schema reference
+vercel.json           Route all traffic to Go handler
 ```
-
-## Development phases
-
-- **Phase 0** ✅ Go server, 5 screens
-- **Phase 1** ✅ SQLite persistence, file uploads, AI clothing analysis
-- **Phase 2** ✅ Weather API, real outfit generation
-- **Phase 3** ✅ Trip packing solver with real closet items
-- **Phase 4** ✅ Fit Check (selfie scoring)

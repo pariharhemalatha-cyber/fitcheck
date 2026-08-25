@@ -34,7 +34,7 @@ var outfitsContent = template.Must(template.New("outfits").Parse(`
         <div class="text-center">
           <div class="w-20 h-20 bg-stone-100 rounded-xl flex items-center justify-center overflow-hidden">
             {{if .ImageURL}}
-            <img src="/uploads/{{.ImageURL}}" alt="{{.Name}}" class="w-full h-full object-cover">
+            <img src="{{.ImageURL}}" alt="{{.Name}}" class="w-full h-full object-cover">
             {{else}}
             <span class="text-2xl">{{if .Emoji}}{{.Emoji}}{{else}}👕{{end}}</span>
             {{end}}

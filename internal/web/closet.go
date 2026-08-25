@@ -43,7 +43,7 @@ var closetContent = template.Must(template.New("closet").Parse(`
     <a href="/closet/items/{{.ID}}" class="bg-white border border-stone-200 rounded-xl overflow-hidden hover:border-stone-400 transition group">
       <div class="aspect-square bg-stone-100 flex items-center justify-center overflow-hidden">
         {{if .ImageURL}}
-        <img src="/uploads/{{.ImageURL}}" alt="{{.Name}}" class="w-full h-full object-cover group-hover:scale-105 transition duration-200">
+        <img src="{{.ImageURL}}" alt="{{.Name}}" class="w-full h-full object-cover group-hover:scale-105 transition duration-200">
         {{else}}
         <span class="text-4xl">{{if .Emoji}}{{.Emoji}}{{else}}👕{{end}}</span>
         {{end}}

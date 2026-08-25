@@ -15,7 +15,7 @@ var itemDetailContent = template.Must(template.New("item_detail").Parse(`
     <div class="bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-sm">
       <div class="aspect-square bg-stone-100 flex items-center justify-center overflow-hidden">
         {{if .Item.ImageURL}}
-        <img src="/uploads/{{.Item.ImageURL}}" alt="{{.Item.Name}}" class="w-full h-full object-cover">
+        <img src="{{.Item.ImageURL}}" alt="{{.Item.Name}}" class="w-full h-full object-cover">
         {{else}}
         <span class="text-6xl">{{if .Item.Emoji}}{{.Item.Emoji}}{{else}}👕{{end}}</span>
         {{end}}

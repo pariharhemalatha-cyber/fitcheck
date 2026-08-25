@@ -14,6 +14,7 @@ type Config struct {
 	SupabaseServiceRoleKey string
 	DatabaseURL            string
 	OpenAIAPIKey           string
+	IsVercel               bool
 }
 
 func Load() (*Config, error) {
@@ -37,5 +38,16 @@ func Load() (*Config, error) {
 		SupabaseServiceRoleKey: os.Getenv("SUPABASE_SERVICE_ROLE_KEY"),
 		DatabaseURL:            os.Getenv("DATABASE_URL"),
 		OpenAIAPIKey:           os.Getenv("OPENAI_API_KEY"),
+		IsVercel:               os.Getenv("VERCEL") == "1",
 	}, nil
+}
+
+// UsePostgres returns true when a Postgres DATABASE_URL is configured (Vercel production).
+func (c *Config) UsePostgres() bool {
+	return c.DatabaseURL != ""
+}
+
+// UseSupabaseStorage returns true when Supabase storage should be used.
+func (c *Config) UseSupabaseStorage() bool {
+	return c.SupabaseURL != "" && c.SupabaseServiceRoleKey != ""
 }

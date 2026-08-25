@@ -30,6 +30,7 @@ func NewLocal(root string) (*Local, error) {
 
 // Save stores a multipart file and returns the web-relative path (e.g. /uploads/abc.jpg).
 func (l *Local) Save(file multipart.File, header *multipart.FileHeader) (string, error) {
+
 	defer file.Close()
 
 	ext := filepath.Ext(header.Filename)
@@ -51,6 +52,20 @@ func (l *Local) Save(file multipart.File, header *multipart.FileHeader) (string,
 
 	return "/" + filepath.ToSlash(filepath.Join(l.Root, name)), nil
 }
+
+func (l *Local) LocalPath(storagePath string) (string, error) {
+	path := strings.TrimPrefix(storagePath, "/uploads/")
+	return filepath.Join(l.Root, path), nil
+}
+
+func (l *Local) PublicURL(storagePath string) string {
+	if strings.HasPrefix(storagePath, "http") {
+		return storagePath
+	}
+	return storagePath
+}
+
+func (l *Local) IsRemote() bool { return false }
 
 // Dir returns the filesystem path for static file serving.
 func (l *Local) Dir() string {

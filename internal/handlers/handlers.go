@@ -2,9 +2,7 @@ package handlers
 
 import (
 	"net/http"
-	"path/filepath"
 	"strconv"
-	"strings"
 
 	"github.com/ashokparihar/fitcheck/internal/ai"
 	"github.com/ashokparihar/fitcheck/internal/db"
@@ -18,15 +16,19 @@ import (
 type Handler struct {
 	store   store.Store
 	svc     *service.Service
-	storage *storage.Local
+	storage storage.Storage
 }
 
-func New(s store.Store, uploads *storage.Local, aiClient *ai.Client) *Handler {
+func New(s store.Store, uploads storage.Storage, aiClient *ai.Client) *Handler {
 	return &Handler{
 		store:   s,
-		svc:     &service.Service{Store: s, AI: aiClient, UploadDir: uploads.Dir()},
+		svc:     &service.Service{Store: s, AI: aiClient},
 		storage: uploads,
 	}
+}
+
+func (h *Handler) imgSrc(storagePath string) string {
+	return storage.PublicSrc(storagePath, h.storage)
 }
 
 func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +44,7 @@ func (h *Handler) Closet(w http.ResponseWriter, r *http.Request) {
 	items := h.store.ListItems(category)
 	closetItems := make([]web.ClosetItem, len(items))
 	for i, item := range items {
-		closetItems[i] = toClosetItem(item)
+		closetItems[i] = toClosetItem(item, h.storage)
 	}
 
 	page := web.PageData{Title: "My Closet", ActiveNav: "closet"}
@@ -76,8 +78,8 @@ func (h *Handler) ItemDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = web.RenderItemDetail(w, page, web.ItemDetailPageData{
-		Item:       toItemDetail(item),
-		Categories: web.DefaultCategories[1:], // skip "all"
+		Item:       toItemDetail(item, h.storage),
+		Categories: web.DefaultCategories[1:],
 	})
 }
 
@@ -133,8 +135,12 @@ func (h *Handler) AddItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// AI analysis
-	fsPath := filepath.Join(h.storage.Dir(), strings.TrimPrefix(storagePath, "/uploads/"))
+	fsPath, err := h.storage.LocalPath(storagePath)
+	if err != nil {
+		http.Error(w, "failed to prepare image for analysis", http.StatusInternalServerError)
+		return
+	}
+
 	attrs, _ := ai.AnalyzeItem(r.Context(), h.svc.AI, fsPath)
 	if attrs.Category != "" {
 		category = attrs.Category
@@ -237,28 +243,23 @@ func (h *Handler) Outfits(w http.ResponseWriter, r *http.Request) {
 
 	webOutfits := make([]web.Outfit, len(outfits))
 	for i, o := range outfits {
-		items := make([]web.OutfitItem, len(o.Items))
-		for j, item := range o.Items {
+		items := make([]web.OutfitItem, len(o.ItemIDs))
+		byID := store.ItemsByID(h.store.ListItems(""))
+		for j, id := range o.ItemIDs {
+			item := byID[id]
 			items[j] = web.OutfitItem{
 				Name:     item.Name,
 				Emoji:    item.Emoji,
-				ImageURL: item.ImageURL,
+				ImageURL: h.imgSrc(item.StoragePath),
 			}
 		}
 		webOutfits[i] = web.Outfit{
-			ID:    o.ID,
-			Label: o.Label,
-			Score: o.Score,
-			Why:   o.Why,
-			Items: items,
+			ID: o.ID, Label: o.Label, Score: o.Score, Why: o.Why, Items: items,
 		}
 	}
 
 	_ = web.RenderOutfits(w, web.PageData{Title: "Outfits", ActiveNav: "outfits"}, web.OutfitsPageData{
-		Location:   req.Location,
-		Days:       req.Days,
-		Activities: req.Activities,
-		Outfits:    webOutfits,
+		Location: req.Location, Days: req.Days, Activities: req.Activities, Outfits: webOutfits,
 	})
 }
 
@@ -287,33 +288,20 @@ func (h *Handler) Trip(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := web.TripPageData{
-		Location:   location,
-		StartDate:  r.URL.Query().Get("start_date"),
-		Days:       days,
-		Activities: r.URL.Query().Get("activities"),
-		Laundry:    laundry,
-		Luggage:    luggage,
+		Location: location, StartDate: r.URL.Query().Get("start_date"), Days: days,
+		Activities: r.URL.Query().Get("activities"), Laundry: laundry, Luggage: luggage,
 	}
 
 	if location != "" {
 		packing, dayOutfits := h.svc.GenerateTrip(r.Context(), service.TripRequest{
-			PlanRequest: h.planFromQuery(r),
-			Laundry:     laundry,
-			Luggage:     luggage,
+			PlanRequest: h.planFromQuery(r), Laundry: laundry, Luggage: luggage,
 		})
 		data.HasPlan = true
-
 		for _, cat := range packing {
-			data.PackingCategories = append(data.PackingCategories, web.PackingCategory{
-				Label: cat.Label,
-				Items: cat.Items,
-			})
+			data.PackingCategories = append(data.PackingCategories, web.PackingCategory{Label: cat.Label, Items: cat.Items})
 		}
 		for _, d := range dayOutfits {
-			data.DayOutfits = append(data.DayOutfits, web.DayOutfit{
-				Day:         d.Day,
-				Description: d.Description,
-			})
+			data.DayOutfits = append(data.DayOutfits, web.DayOutfit{Day: d.Day, Description: d.Description})
 		}
 	}
 
@@ -330,11 +318,8 @@ func (h *Handler) FitCheck(w http.ResponseWriter, r *http.Request) {
 	closetItems := make([]web.FitCheckClosetItem, len(items))
 	for i, item := range items {
 		closetItems[i] = web.FitCheckClosetItem{
-			ID:       item.ID,
-			Name:     item.Name,
-			Category: item.Category,
-			ImageURL: imageURLFromPath(item.StoragePath),
-			Emoji:    item.Emoji,
+			ID: item.ID, Name: item.Name, Category: item.Category,
+			ImageURL: h.imgSrc(item.StoragePath), Emoji: item.Emoji,
 		}
 	}
 
@@ -366,15 +351,19 @@ func (h *Handler) runFitCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fsPath := filepath.Join(h.storage.Dir(), strings.TrimPrefix(storagePath, "/uploads/"))
+	fsPath, err := h.storage.LocalPath(storagePath)
+	if err != nil {
+		http.Error(w, "failed to prepare selfie", http.StatusInternalServerError)
+		return
+	}
+
 	allItems := store.ToOutfitItems(h.store.ListItems(""))
 	result, _ := ai.AnalyzeFitCheck(r.Context(), h.svc.AI, fsPath, itemIDs, allItems)
 
 	byID := store.ItemsByID(h.store.ListItems(""))
 	swaps := make([]web.SwapSuggestion, len(result.SuggestedSwaps))
 	for i, s := range result.SuggestedSwaps {
-		from := s.FromItemID
-		to := s.ToItemID
+		from, to := s.FromItemID, s.ToItemID
 		if item, ok := byID[s.FromItemID]; ok {
 			from = item.Name
 		}
@@ -392,10 +381,8 @@ func (h *Handler) runFitCheck(w http.ResponseWriter, r *http.Request) {
 	_ = h.store.SaveFitCheck(storagePath, itemIDs, result.Score, result.Critique)
 
 	fitResult := web.FitCheckResult{
-		Score:     result.Score,
-		Critique:  critique,
-		Swaps:     swaps,
-		SelfieURL: strings.TrimPrefix(storagePath, "/uploads/"),
+		Score: result.Score, Critique: critique, Swaps: swaps,
+		SelfieURL: h.imgSrc(storagePath),
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
@@ -409,12 +396,11 @@ func (h *Handler) runFitCheck(w http.ResponseWriter, r *http.Request) {
 	for i, item := range items {
 		closetItems[i] = web.FitCheckClosetItem{
 			ID: item.ID, Name: item.Name, Category: item.Category,
-			ImageURL: imageURLFromPath(item.StoragePath), Emoji: item.Emoji,
+			ImageURL: h.imgSrc(item.StoragePath), Emoji: item.Emoji,
 		}
 	}
 	_ = web.RenderFitCheck(w, web.PageData{Title: "Fit Check", ActiveNav: "fitcheck"}, web.FitCheckPageData{
-		ClosetItems: closetItems,
-		Result:      &fitResult,
+		ClosetItems: closetItems, Result: &fitResult,
 	})
 }
 
@@ -437,46 +423,26 @@ func (h *Handler) planFromQuery(r *http.Request) service.PlanRequest {
 		lookGoal = "balanced"
 	}
 	return service.PlanRequest{
-		Location:   r.URL.Query().Get("location"),
-		StartDate:  r.URL.Query().Get("start_date"),
-		Days:       days,
-		Activities: r.URL.Query().Get("activities"),
-		Formality:  formality,
-		LookGoal:   lookGoal,
+		Location: r.URL.Query().Get("location"), StartDate: r.URL.Query().Get("start_date"),
+		Days: days, Activities: r.URL.Query().Get("activities"),
+		Formality: formality, LookGoal: lookGoal,
 	}
 }
 
-func toClosetItem(item store.Item) web.ClosetItem {
+func toClosetItem(item store.Item, s storage.Storage) web.ClosetItem {
 	return web.ClosetItem{
-		ID:        item.ID,
-		Name:      item.Name,
-		Category:  item.Category,
-		MainColor: item.MainColor,
-		Emoji:     item.Emoji,
-		ImageURL:  imageURLFromPath(item.StoragePath),
+		ID: item.ID, Name: item.Name, Category: item.Category,
+		MainColor: item.MainColor, Emoji: item.Emoji,
+		ImageURL: storage.PublicSrc(item.StoragePath, s),
 	}
 }
 
-func toItemDetail(item store.Item) web.ItemDetail {
+func toItemDetail(item store.Item, s storage.Storage) web.ItemDetail {
 	return web.ItemDetail{
-		ID:               item.ID,
-		Name:             item.Name,
-		Category:         item.Category,
-		ImageURL:         imageURLFromPath(item.StoragePath),
-		Emoji:            item.Emoji,
-		MainColor:        item.MainColor,
-		Pattern:          item.Pattern,
-		Material:         item.Material,
-		Formality:        item.Formality,
-		SeasonTags:       item.SeasonTags,
-		ActivityTags:     item.ActivityTags,
-		SeasonTagsText:   db.JoinCommaList(item.SeasonTags),
-		ActivityTagsText: db.JoinCommaList(item.ActivityTags),
+		ID: item.ID, Name: item.Name, Category: item.Category,
+		ImageURL: storage.PublicSrc(item.StoragePath, s), Emoji: item.Emoji,
+		MainColor: item.MainColor, Pattern: item.Pattern, Material: item.Material,
+		Formality: item.Formality, SeasonTags: item.SeasonTags, ActivityTags: item.ActivityTags,
+		SeasonTagsText: db.JoinCommaList(item.SeasonTags), ActivityTagsText: db.JoinCommaList(item.ActivityTags),
 	}
 }
-
-func imageURLFromPath(path string) string {
-	return strings.TrimPrefix(path, "/uploads/")
-}
-
-// suppress unused import removed
