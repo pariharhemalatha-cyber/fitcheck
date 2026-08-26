@@ -89,7 +89,6 @@ cp .env.example .env
 ## Project structure
 
 ```
-main.go               Local / Go server entrypoint
 api/index.go          Vercel serverless entrypoint
 cmd/web/main.go       Local development server
 internal/
