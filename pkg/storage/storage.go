@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ashokparihar/fitcheck/internal/config"
+	"github.com/ashokparihar/fitcheck/pkg/config"
 	"github.com/google/uuid"
 )
 

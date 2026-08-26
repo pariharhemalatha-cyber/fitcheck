@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/ashokparihar/fitcheck/internal/db"
+	"github.com/ashokparihar/fitcheck/pkg/db"
 	"github.com/google/uuid"
 )
 

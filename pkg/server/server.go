@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ashokparihar/fitcheck/internal/ai"
-	"github.com/ashokparihar/fitcheck/internal/config"
-	"github.com/ashokparihar/fitcheck/internal/db"
-	"github.com/ashokparihar/fitcheck/internal/handlers"
-	"github.com/ashokparihar/fitcheck/internal/storage"
-	"github.com/ashokparihar/fitcheck/internal/store"
+	"github.com/ashokparihar/fitcheck/pkg/ai"
+	"github.com/ashokparihar/fitcheck/pkg/config"
+	"github.com/ashokparihar/fitcheck/pkg/db"
+	"github.com/ashokparihar/fitcheck/pkg/handlers"
+	"github.com/ashokparihar/fitcheck/pkg/storage"
+	"github.com/ashokparihar/fitcheck/pkg/store"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )

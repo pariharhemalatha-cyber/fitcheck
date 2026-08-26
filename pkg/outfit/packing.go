@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/ashokparihar/fitcheck/internal/weather"
+	"github.com/ashokparihar/fitcheck/pkg/weather"
 )
 
 // PackingList groups item IDs by category for trip packing.

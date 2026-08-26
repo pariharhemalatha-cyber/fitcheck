@@ -53,12 +53,12 @@ In Supabase Dashboard → **Storage** → **New bucket**:
 | `GEMINI_API_KEY` | Recommended | Free AI vision + outfits ([get key](https://aistudio.google.com/apikey)) |
 | `OPENAI_API_KEY` | Optional | Paid AI fallback |
 
-3. Deploy — Vercel detects Go via root `main.go` + `vercel.json`
+3. Deploy — Vercel detects Go via `api/index.go` + `vercel.json`
 
 ### How Vercel works
 
 ```
-Browser → Vercel Go server (main.go) → chi router
+Browser → Vercel serverless (api/index.go) → chi router
               ├── Supabase Postgres (persistent data)
               ├── Supabase Storage (clothing photos)
               ├── Open-Meteo (weather)
@@ -89,7 +89,8 @@ cp .env.example .env
 ## Project structure
 
 ```
-main.go               Vercel + production entrypoint
+main.go               Local / Go server entrypoint
+api/index.go          Vercel serverless entrypoint
 cmd/web/main.go       Local development server
 internal/
   ai/                 OpenAI + fallbacks

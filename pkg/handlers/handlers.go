@@ -4,12 +4,12 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/ashokparihar/fitcheck/internal/ai"
-	"github.com/ashokparihar/fitcheck/internal/db"
-	"github.com/ashokparihar/fitcheck/internal/service"
-	"github.com/ashokparihar/fitcheck/internal/storage"
-	"github.com/ashokparihar/fitcheck/internal/store"
-	"github.com/ashokparihar/fitcheck/internal/web"
+	"github.com/ashokparihar/fitcheck/pkg/ai"
+	"github.com/ashokparihar/fitcheck/pkg/db"
+	"github.com/ashokparihar/fitcheck/pkg/service"
+	"github.com/ashokparihar/fitcheck/pkg/storage"
+	"github.com/ashokparihar/fitcheck/pkg/store"
+	"github.com/ashokparihar/fitcheck/pkg/web"
 	"github.com/go-chi/chi/v5"
 )
 

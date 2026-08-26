@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ashokparihar/fitcheck/internal/outfit"
-	"github.com/ashokparihar/fitcheck/internal/weather"
+	"github.com/ashokparihar/fitcheck/pkg/outfit"
+	"github.com/ashokparihar/fitcheck/pkg/weather"
 )
 
 // GeneratedOutfit is an AI- or rule-produced outfit recommendation.

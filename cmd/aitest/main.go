@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ashokparihar/fitcheck/internal/ai"
-	"github.com/ashokparihar/fitcheck/internal/config"
+	"github.com/ashokparihar/fitcheck/pkg/ai"
+	"github.com/ashokparihar/fitcheck/pkg/config"
 )
 
 func main() {

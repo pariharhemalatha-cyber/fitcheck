@@ -5,10 +5,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ashokparihar/fitcheck/internal/ai"
-	"github.com/ashokparihar/fitcheck/internal/outfit"
-	"github.com/ashokparihar/fitcheck/internal/store"
-	"github.com/ashokparihar/fitcheck/internal/weather"
+	"github.com/ashokparihar/fitcheck/pkg/ai"
+	"github.com/ashokparihar/fitcheck/pkg/outfit"
+	"github.com/ashokparihar/fitcheck/pkg/store"
+	"github.com/ashokparihar/fitcheck/pkg/weather"
 	"github.com/google/uuid"
 )
 

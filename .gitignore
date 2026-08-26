@@ -6,3 +6,4 @@
 fitcheck.db
 .DS_Store
 web/static/css/output.css
+.vercel

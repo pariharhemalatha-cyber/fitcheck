@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ashokparihar/fitcheck/internal/weather"
+	"github.com/ashokparihar/fitcheck/pkg/weather"
 )
 
 // Item represents a closet piece with attributes used for outfit logic.

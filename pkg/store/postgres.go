@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ashokparihar/fitcheck/internal/db"
+	"github.com/ashokparihar/fitcheck/pkg/db"
 	"github.com/google/uuid"
 )
 

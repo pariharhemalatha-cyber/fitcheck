@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/ashokparihar/fitcheck/internal/config"
-	"github.com/ashokparihar/fitcheck/internal/server"
+	"github.com/ashokparihar/fitcheck/pkg/config"
+	"github.com/ashokparihar/fitcheck/pkg/server"
 )
 
 func main() {

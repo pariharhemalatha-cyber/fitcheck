@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ashokparihar/fitcheck/internal/outfit"
+	"github.com/ashokparihar/fitcheck/pkg/outfit"
 )
 
 // FitCheckResult holds a selfie-based outfit evaluation.

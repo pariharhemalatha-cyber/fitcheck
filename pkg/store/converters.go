@@ -1,7 +1,7 @@
 package store
 
 import (
-	"github.com/ashokparihar/fitcheck/internal/outfit"
+	"github.com/ashokparihar/fitcheck/pkg/outfit"
 )
 
 func ToOutfitItem(item Item) outfit.Item {

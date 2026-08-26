@@ -3,7 +3,7 @@ package ai
 import (
 	"log"
 
-	"github.com/ashokparihar/fitcheck/internal/config"
+	"github.com/ashokparihar/fitcheck/pkg/config"
 )
 
 // NewClientFromConfig picks the best available AI provider.
